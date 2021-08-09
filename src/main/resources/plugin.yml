@@ -1,0 +1,6 @@
+name: MC2GForward
+version: ${project.version}
+main: vip.floatationdevice.mc2gforward.MC2GForward
+api-version: 1.13
+authors: [MCUmbrella]
+description: Forward messages between Minecraft and Guilded server
