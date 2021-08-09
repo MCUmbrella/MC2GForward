@@ -56,7 +56,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
             getLogger().info("Connecting to Guilded server");
             g4JClient=new G4JClient(token);
             //g4JClient.connect();
-            g4JClient.createChannelMessage(channel,"*** MC2GForawrd started ***");
+            g4JClient.createChannelMessage(channel,"*** MC2GForward started ***");
         }catch (Throwable e)
         {
             getLogger().severe("Failed to initialize plugin!");
@@ -70,7 +70,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
     {
         if(g4JClient!=null&&!g4JClient.isClosed())
         {
-            String result=g4JClient.createChannelMessage(channel,"*** MC2GForawrd stopped ***");
+            String result=g4JClient.createChannelMessage(channel,"*** MC2GForward stopped ***");
             //g4JClient.close();
             g4JClient=null;
             if(debug) getLogger().info("\n"+new JSONObject(result).toStringPretty());
