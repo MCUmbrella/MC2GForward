@@ -6,6 +6,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import vip.floatationdevice.guilded4j.G4JClient;
@@ -15,9 +16,9 @@ import java.util.Properties;
 
 public final class MC2GForward extends JavaPlugin implements Listener
 {
-    final static String cfgPath="."+ File.separator+"plugins"+File.separator+"MC2GForward"+ File.separator+"config.properties";
+    final static String cfgPath="."+File.separator+"plugins"+File.separator+"MC2GForward"+File.separator;
     String token,channel;
-    static G4JClient g4JClient;
+    G4JClient g4JClient;
     Boolean forwardJoinLeaveEvents=true;
     Boolean debug=false;
 
@@ -27,8 +28,8 @@ public final class MC2GForward extends JavaPlugin implements Listener
         Bukkit.getPluginManager().registerEvents(this, this);
         try
         {
-            new File(new File(cfgPath).getParent()).mkdirs();
-            File file=new File(cfgPath);
+            new File(new File(cfgPath+"config.properties").getParent()).mkdirs();
+            File file=new File(cfgPath+"config.properties");
             if(!file.exists())
             {
                 getLogger().severe("Config file not found and a empty one will be created. Set the token and channel UUID and RESTART server.");
@@ -39,8 +40,8 @@ public final class MC2GForward extends JavaPlugin implements Listener
                 Bukkit.getPluginManager().disablePlugin(this);
                 return;
             }
-            BufferedReader cfg = new BufferedReader(new FileReader(file));
-            Properties p = new Properties();
+            BufferedReader cfg=new BufferedReader(new FileReader(file));
+            Properties p=new Properties();
             p.load(cfg);
             token=p.getProperty("token");
             channel=p.getProperty("channel");
@@ -55,8 +56,8 @@ public final class MC2GForward extends JavaPlugin implements Listener
             }
             getLogger().info("Connecting to Guilded server");
             g4JClient=new G4JClient(token);
-            //g4JClient.connect();
-            g4JClient.createChannelMessage(channel,"*** MC2GForward started ***");
+            g4JClient.connect();
+            sendGuildedMsg("*** MC2GForward started ***");
         }catch (Throwable e)
         {
             getLogger().severe("Failed to initialize plugin!");
@@ -68,12 +69,12 @@ public final class MC2GForward extends JavaPlugin implements Listener
     @Override
     public void onDisable()
     {
-        if(g4JClient!=null&&!g4JClient.isClosed())
+        if(g4JClient!=null)
         {
             String result=g4JClient.createChannelMessage(channel,"*** MC2GForward stopped ***");
             //g4JClient.close();
             g4JClient=null;
-            if(debug) getLogger().info("\n"+new JSONObject(result).toStringPretty());
+            if(debug)getLogger().info("\n"+new JSONObject(result).toStringPretty());
         }
     }
     @EventHandler
@@ -87,8 +88,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
                 String message=event.getMessage();
                 if(!message.startsWith("/"))
                 {
-                    String result=g4JClient.createChannelMessage(channel,"<"+event.getPlayer().getName()+"> "+new String(message.replace("\\","\\\\").replace("\"","\\\"")));
-                    if(debug)getLogger().info("\n"+new JSONObject(result).toStringPretty());
+                    sendGuildedMsg("<"+event.getPlayer().getName()+"> "+message.replace("\\", "\\\\").replace("\"", "\\\""));
                 }
             }
         }.start();
@@ -96,27 +96,32 @@ public final class MC2GForward extends JavaPlugin implements Listener
     @EventHandler
     public void onJoin(PlayerJoinEvent event)
     {
-        if(forwardJoinLeaveEvents)
-            new Thread()
-            {
-                @Override
-                public void run()
-                {
-                    g4JClient.createChannelMessage(channel,"[+] "+event.getPlayer().getName()+" connected");
-                }
-            }.start();
+        if(forwardJoinLeaveEvents)sendGuildedMsg("[+] "+event.getPlayer().getName()+" connected");
+    }
+    @EventHandler
+    public void onUnusualLeave(PlayerKickEvent event)
+    {
+        if(forwardJoinLeaveEvents)sendGuildedMsg("("+event.getPlayer().getName()+" lost connection: "+event.getReason()+")");
     }
     @EventHandler
     public void onLeave(PlayerQuitEvent event)
     {
-        if(forwardJoinLeaveEvents)
-            new Thread()
+        if(forwardJoinLeaveEvents)sendGuildedMsg("[-] "+event.getPlayer().getName()+" disconnected");
+    }
+    public void sendGuildedMsg(String msg)
+    {
+        new Thread()
+        {
+            String result="{}";
+            @Override
+            public void run()
             {
-                @Override
-                public void run()
+                if(g4JClient!=null)
                 {
-                    g4JClient.createChannelMessage(channel,"[-] "+event.getPlayer().getName()+" disconnected");
+                    result=g4JClient.createChannelMessage(channel,msg);
+                    if(debug)getLogger().info("\n"+new JSONObject(result).toStringPretty());
                 }
-            }.start();
+            }
+        }.start();
     }
 }

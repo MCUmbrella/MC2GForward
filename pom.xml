@@ -6,7 +6,7 @@
 
     <groupId>vip.floatationdevice</groupId>
     <artifactId>mc2gforward</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0-SNAPSHOT2</version>
     <packaging>jar</packaging>
 
     <name>MC2GForward</name>
@@ -50,7 +50,6 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <!--<createDependencyReducedPom>false</createDependencyReducedPom>-->
                         </configuration>
                     </execution>
                 </executions>
@@ -81,7 +80,7 @@
         </repository>
         <repository>
             <id>floatationdevice</id>
-            <url>https://github.com/MCUmbrella/maven/raw/main/</url>
+            <url>http://maven.floatationdevice.vip/</url>
         </repository>
     </repositories>
 
@@ -96,7 +95,6 @@
             <groupId>vip.floatationdevice</groupId>
             <artifactId>guilded4j</artifactId>
             <version>1.0-SNAPSHOT</version>
-            <!--<scope>provided</scope>-->
         </dependency>
     </dependencies>
 </project>
