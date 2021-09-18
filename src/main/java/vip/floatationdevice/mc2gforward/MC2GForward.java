@@ -54,10 +54,16 @@ public final class MC2GForward extends JavaPlugin implements Listener
                 Bukkit.getPluginManager().disablePlugin(this);
                 return;
             }
-            getLogger().info("Connecting to Guilded server");
+            /*
+            TODO:
+             add a command (like '/mc2g bind <verification code>') on MC side and Guilded side
+             to verify Guilded users' MC player name. once a Guilded account has been bound to
+             a Minecraft player, he/she will have ability to forward messages to Minecraft side
+             */
+            //getLogger().info("Connecting to Guilded server");
             g4JClient=new G4JClient(token);
-            g4JClient.connect();
-            sendGuildedMsg("*** MC2GForward started ***");
+            //g4JClient.connect();
+            sendGuildedMsg("--- MC2GForward started ---");
         }catch (Throwable e)
         {
             getLogger().severe("Failed to initialize plugin!");
@@ -71,7 +77,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
     {
         if(g4JClient!=null)
         {
-            String result=g4JClient.createChannelMessage(channel,"*** MC2GForward stopped ***");
+            String result=g4JClient.createChannelMessage(channel,"--- MC2GForward stopped ---");
             //g4JClient.close();
             g4JClient=null;
             if(debug)getLogger().info("\n"+new JSONObject(result).toStringPretty());
