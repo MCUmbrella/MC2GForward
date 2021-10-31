@@ -10,6 +10,7 @@ import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import vip.floatationdevice.guilded4j.G4JClient;
+import vip.floatationdevice.guilded4j.object.ChatMessage;
 
 import java.io.*;
 import java.util.Properties;
@@ -63,7 +64,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
             //getLogger().info("Connecting to Guilded server");
             g4JClient=new G4JClient(token);
             //g4JClient.connect();
-            sendGuildedMsg("--- MC2GForward started ---");
+            sendGuildedMsg("`*** MC2GForward started ***`");
         }catch (Throwable e)
         {
             getLogger().severe("Failed to initialize plugin!");
@@ -77,10 +78,12 @@ public final class MC2GForward extends JavaPlugin implements Listener
     {
         if(g4JClient!=null)
         {
-            String result=g4JClient.createChannelMessage(channel,"--- MC2GForward stopped ---");
+            ChatMessage result=null;
+            try {result=g4JClient.createChannelMessage(channel,"`*** MC2GForward stopped ***`",null,null);}
+            catch (Exception e) {getLogger().severe("Failed to send message to Guilded server: "+e);}
             //g4JClient.close();
             g4JClient=null;
-            if(debug)getLogger().info("\n"+new JSONObject(result).toStringPretty());
+            if(debug&&result!=null)getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
         }
     }
     @EventHandler
@@ -94,7 +97,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
                 String message=event.getMessage();
                 if(!message.startsWith("/"))
                 {
-                    sendGuildedMsg("<"+event.getPlayer().getName()+"> "+message.replace("\\", "\\\\").replace("\"", "\\\""));
+                    sendGuildedMsg("<"+event.getPlayer().getName()+"> "+message);
                 }
             }
         }.start();
@@ -102,30 +105,31 @@ public final class MC2GForward extends JavaPlugin implements Listener
     @EventHandler
     public void onJoin(PlayerJoinEvent event)
     {
-        if(forwardJoinLeaveEvents)sendGuildedMsg("[+] "+event.getPlayer().getName()+" connected");
+        if(forwardJoinLeaveEvents)sendGuildedMsg("`[+] "+event.getPlayer().getName()+" connected`");
     }
     @EventHandler
     public void onUnusualLeave(PlayerKickEvent event)
     {
-        if(forwardJoinLeaveEvents)sendGuildedMsg("("+event.getPlayer().getName()+" lost connection: "+event.getReason()+")");
+        if(forwardJoinLeaveEvents)sendGuildedMsg("`("+event.getPlayer().getName()+" lost connection: "+event.getReason()+")`");
     }
     @EventHandler
     public void onLeave(PlayerQuitEvent event)
     {
-        if(forwardJoinLeaveEvents)sendGuildedMsg("[-] "+event.getPlayer().getName()+" disconnected");
+        if(forwardJoinLeaveEvents)sendGuildedMsg("`[-] "+event.getPlayer().getName()+" disconnected`");
     }
     public void sendGuildedMsg(String msg)
     {
         new Thread()
         {
-            String result="{}";
+            ChatMessage result=null;
             @Override
             public void run()
             {
                 if(g4JClient!=null)
                 {
-                    result=g4JClient.createChannelMessage(channel,msg);
-                    if(debug)getLogger().info("\n"+new JSONObject(result).toStringPretty());
+                    try {result=g4JClient.createChannelMessage(channel,msg,null,null);}
+                    catch(Exception e) {getLogger().severe("Failed to send message to Guilded server: "+e);}
+                    if(debug&&result!=null) getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
                 }
             }
         }.start();
