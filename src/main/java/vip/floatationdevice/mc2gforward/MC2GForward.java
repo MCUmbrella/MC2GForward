@@ -17,15 +17,18 @@ import java.util.Properties;
 
 public final class MC2GForward extends JavaPlugin implements Listener
 {
+    public static MC2GForward instance;
     final static String cfgPath="."+File.separator+"plugins"+File.separator+"MC2GForward"+File.separator;
-    String token,channel;
+    static String token,channel;
     G4JClient g4JClient;
+    BindManager bindMgr;
     Boolean forwardJoinLeaveEvents=true;
     Boolean debug=false;
 
     @Override
     public void onEnable()
     {
+        instance=this;
         Bukkit.getPluginManager().registerEvents(this, this);
         try
         {
@@ -55,15 +58,17 @@ public final class MC2GForward extends JavaPlugin implements Listener
                 Bukkit.getPluginManager().disablePlugin(this);
                 return;
             }
-            /*
-            TODO:
-             add a command (like '/mc2g bind <verification code>') on MC side and Guilded side
-             to verify Guilded users' MC player name. once a Guilded account has been bound to
-             a Minecraft player, he/she will have ability to forward messages to Minecraft side
-             */
-            //getLogger().info("Connecting to Guilded server");
             g4JClient=new G4JClient(token);
-            //g4JClient.connect();
+            Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable()
+            {// fuck lambdas all my codes are lambda-free
+                @Override
+                public void run()
+                {
+                    bindMgr=new BindManager();
+                    Bukkit.getPluginManager().registerEvents(bindMgr, instance);
+                    getCommand("mc2g").setExecutor(bindMgr);
+                }
+            });
             sendGuildedMsg("`*** MC2GForward started ***`");
         }catch (Throwable e)
         {
@@ -83,6 +88,8 @@ public final class MC2GForward extends JavaPlugin implements Listener
             catch (Exception e) {getLogger().severe("Failed to send message to Guilded server: "+e);}
             //g4JClient.close();
             g4JClient=null;
+            bindMgr.client.ws.close();
+            bindMgr=null;
             if(debug&&result!=null)getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
         }
     }
@@ -102,36 +109,40 @@ public final class MC2GForward extends JavaPlugin implements Listener
             }
         }.start();
     }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent event)
     {
         if(forwardJoinLeaveEvents)sendGuildedMsg("`[+] "+event.getPlayer().getName()+" connected`");
     }
+
     @EventHandler
     public void onUnusualLeave(PlayerKickEvent event)
     {
         if(forwardJoinLeaveEvents)sendGuildedMsg("`("+event.getPlayer().getName()+" lost connection: "+event.getReason()+")`");
     }
+
     @EventHandler
     public void onLeave(PlayerQuitEvent event)
     {
         if(forwardJoinLeaveEvents)sendGuildedMsg("`[-] "+event.getPlayer().getName()+" disconnected`");
     }
+
     public void sendGuildedMsg(String msg)
     {
-        new Thread()
+        Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable()
         {
-            ChatMessage result=null;
             @Override
             public void run()
             {
                 if(g4JClient!=null)
                 {
+                    ChatMessage result=null;
                     try {result=g4JClient.createChannelMessage(channel,msg,null,null);}
                     catch(Exception e) {getLogger().severe("Failed to send message to Guilded server: "+e);}
                     if(debug&&result!=null) getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
                 }
             }
-        }.start();
+        });
     }
 }

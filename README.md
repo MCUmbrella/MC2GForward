@@ -15,3 +15,7 @@ debug=false
 - `channel`: target channel ID. All message forwarding occurs on this channel
 - `forwardJoinLeaveEvents`: whether forward player join/quit messages or not
 - `debug`: print the response after forwarding a message to Guilded.
+### Binding your Guilded account:
+1. Log into the Minecraft server and type `/mc2g mkbind` and you will get a 10-digit random binding code.
+2. Open Guilded client and type `/mc2g mkbind <code>`.
+- If you want to unbind, type `/mc2g rmbind` at any side.

@@ -4,3 +4,6 @@ main: vip.floatationdevice.mc2gforward.MC2GForward
 api-version: 1.13
 authors: [MCUmbrella]
 description: Forward messages between Minecraft and Guilded server
+commands:
+  mc2g:
+    description: The main command of MC2GForward
