@@ -26,6 +26,7 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
 {//TODO: cleanups and optimizations when im began to feel better
     public static HashMap<String, UUID> bindMap=new HashMap<String, UUID>();// key: guilded userId; value: mc player uuid
     public static HashMap<String, UUID> pendingMap=new HashMap<String, UUID>();// key: bind code; value: mc player uuid
+    public static HashMap<UUID, String> pendingPlayerMap =new HashMap<UUID, String>();// key: mc player uuid; value: bind code
     public static final Random r=new Random();
     G4JClient client;
 
@@ -73,10 +74,11 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
                     if(pendingMap.containsKey(args[2]))// code matched?
                     {
                         bindMap.put(event.getChatMessageObject().getCreatorId(), pendingMap.get(args[2]));
+                        pendingPlayerMap.remove(pendingMap.get(args[2]));
                         pendingMap.remove(args[2]);
-                        try{Bukkit.getPlayer(bindMap.get(event.getChatMessageObject().getCreatorId())).sendMessage("[MC2GForward] Binding process completed. Now you can send messages from Guilded server to Minecraft server");}catch(Exception ignored){}
+                        try{Bukkit.getPlayer(bindMap.get(event.getChatMessageObject().getCreatorId())).sendMessage("[§6MC2GForward§f] §aSuccessfully bound your Guilded account\n  §aNow you can send messages from Guilded server to Minecraft server");}catch(Exception ignored){}
                         sendGuildedMsg("[i] Successfully bound your account to "+getPlayerName(bindMap.get(event.getChatMessageObject().getCreatorId())), event.getChatMessageObject().getMsgId());
-                        instance.getLogger().info(getPlayerName(bindMap.get(event.getChatMessageObject().getCreatorId()))+" bound successfully");
+                        instance.getLogger().info(getPlayerName(bindMap.get(event.getChatMessageObject().getCreatorId()))+" successfully bound Guilded account");
                         saveBindMap();
                     }
                     else// code not in pending list?
@@ -90,10 +92,10 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
         {
             if(bindMap.containsKey(event.getChatMessageObject().getCreatorId()))// player bound?
             {
-                try{Bukkit.getPlayer(bindMap.get(event.getChatMessageObject().getCreatorId())).sendMessage("[MC2GForward] Successfully unbound your Guilded account");}catch(Exception ignored){}
+                try{Bukkit.getPlayer(bindMap.get(event.getChatMessageObject().getCreatorId())).sendMessage("[§6MC2GForward§f] §aSuccessfully unbound your Guilded account");}catch(Exception ignored){}
                 UUID removed=bindMap.remove(event.getChatMessageObject().getCreatorId());
                 sendGuildedMsg("[i] Successfully unbound your Guilded account", event.getChatMessageObject().getMsgId());
-                instance.getLogger().info(getPlayerName(removed)+" unbound successfully");
+                instance.getLogger().info(getPlayerName(removed)+" successfully unbound Guilded account");
                 saveBindMap();
             }
             else// player not bound?
@@ -103,7 +105,7 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
         }
         else
         {
-            if(bindMap.containsKey(event.getChatMessageObject().getCreatorId()))
+            if(!event.getChatMessageObject().getContent().startsWith("/")&&bindMap.containsKey(event.getChatMessageObject().getCreatorId()))
                 Bukkit.broadcastMessage("<"+getPlayerName(bindMap.get(event.getChatMessageObject().getCreatorId()))+"> "+event.getChatMessageObject().getContent());
         }
     }
@@ -120,9 +122,12 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
         if(args.length==1&&args[0].equals("mkbind"))
         {
             String code="";// 10-digit random bind code from ASCII x21(!) to x7E(~)
-            for(int i=0;i!=10;i++) code+=String.valueOf((char)(r.nextInt(94)+33));
+            for(int i=0;i!=10;i++) code+=String.valueOf((char)(r.nextInt(94)+33));// StringBuilder not needed
+            if(pendingPlayerMap.containsKey(((Player)sender).getUniqueId())) // update bind code
+                pendingMap.remove(pendingPlayerMap.get(((Player)sender).getUniqueId()));
             pendingMap.put(code, ((Player)sender).getUniqueId());
-            sender.sendMessage("[MC2GForward] Your bind code is: "+code+"\n  Type \"/mc2g mkbind "+code+"\" in Guilded server to complete the bind process");
+            pendingPlayerMap.put(((Player)sender).getUniqueId(), code);
+            sender.sendMessage("[§6MC2GForward§f] Your bind code is: §a"+code+"\n  §fType \"§a/mc2g mkbind "+code+"§f\" in Guilded server to confirm the bind");
             instance.getLogger().info(sender.getName()+" requested a bind code: "+code);
             return true;
         }
@@ -133,18 +138,18 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
                 if(bindMap.get(u).equals(((Player)sender).getUniqueId()))
                 {
                     bindMap.remove(u);
-                    sender.sendMessage("[MC2GForward] Successfully unbound your Guilded account");
-                    instance.getLogger().info(sender.getName()+" unbound successfully");
+                    sender.sendMessage("[§6MC2GForward§f] §aSuccessfully unbound your Guilded account");
+                    instance.getLogger().info(sender.getName()+" successfully unbound Guilded account");
                     saveBindMap();
                     return true;
                 }
             }
-            sender.sendMessage("[MC2GForward] You must bind a Guilded account first");
+            sender.sendMessage("[§6MC2GForward§f] §cYou must bind a Guilded account first");
             return false;
         }
         else
         {
-            sender.sendMessage("[MC2GForward] Usage: /mc2g <mkbind/rmbind>");
+            sender.sendMessage("[§6MC2GForward§f] §eUsage: /mc2g <mkbind/rmbind>");
             return false;
         }
     }
