@@ -20,6 +20,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
     public static MC2GForward instance;
     final static String cfgPath="."+File.separator+"plugins"+File.separator+"MC2GForward"+File.separator;
     static String token,channel;
+    static Boolean mc2gRunning=false;
     G4JClient g4JClient;
     BindManager bindMgr;
     Boolean forwardJoinLeaveEvents=true;
@@ -65,6 +66,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
                 public void run()
                 {
                     bindMgr=new BindManager();
+                    mc2gRunning=true;
                     Bukkit.getPluginManager().registerEvents(bindMgr, instance);
                     getCommand("mc2g").setExecutor(bindMgr);
                 }
@@ -74,6 +76,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
         {
             getLogger().severe("Failed to initialize plugin!");
             g4JClient=null;
+            bindMgr=null;
             e.printStackTrace();
             Bukkit.getPluginManager().disablePlugin(this);
         }
@@ -81,51 +84,56 @@ public final class MC2GForward extends JavaPlugin implements Listener
     @Override
     public void onDisable()
     {
+        mc2gRunning=false;
+        if(bindMgr!=null)
+        {
+            bindMgr.ws.close();
+            bindMgr=null;
+        }
         if(g4JClient!=null)
         {
             ChatMessage result=null;
             try {result=g4JClient.createChannelMessage(channel,"`*** MC2GForward stopped ***`",null,null);}
             catch (Exception e) {getLogger().severe("Failed to send message to Guilded server: "+e);}
-            //g4JClient.close();
             g4JClient=null;
-            bindMgr.client.ws.close();
-            bindMgr=null;
-            if(debug&&result!=null)getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
+            if(debug&&result!=null)
+                getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
         }
     }
     @EventHandler
     public void onChat(AsyncPlayerChatEvent event)
     {
-        new Thread()
+        Bukkit.getScheduler().runTaskAsynchronously(this,new Runnable()
         {
             @Override
             public void run()
             {
                 String message=event.getMessage();
                 if(!message.startsWith("/"))
-                {
                     sendGuildedMsg("<"+event.getPlayer().getName()+"> "+message);
-                }
             }
-        }.start();
+        });
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event)
     {
-        if(forwardJoinLeaveEvents)sendGuildedMsg("`[+] "+event.getPlayer().getName()+" connected`");
+        if(forwardJoinLeaveEvents)
+            sendGuildedMsg("`[+] "+event.getPlayer().getName()+" connected`");
     }
 
     @EventHandler
     public void onUnusualLeave(PlayerKickEvent event)
     {
-        if(forwardJoinLeaveEvents)sendGuildedMsg("`("+event.getPlayer().getName()+" lost connection: "+event.getReason()+")`");
+        if(forwardJoinLeaveEvents)
+            sendGuildedMsg("`("+event.getPlayer().getName()+" lost connection: "+event.getReason()+")`");
     }
 
     @EventHandler
     public void onLeave(PlayerQuitEvent event)
     {
-        if(forwardJoinLeaveEvents)sendGuildedMsg("`[-] "+event.getPlayer().getName()+" disconnected`");
+        if(forwardJoinLeaveEvents)
+            sendGuildedMsg("`[-] "+event.getPlayer().getName()+" disconnected`");
     }
 
     public void sendGuildedMsg(String msg)

@@ -8,7 +8,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
-import vip.floatationdevice.guilded4j.G4JClient;
 import vip.floatationdevice.guilded4j.G4JWebSocketClient;
 import vip.floatationdevice.guilded4j.event.ChatMessageCreatedEvent;
 import vip.floatationdevice.guilded4j.event.GuildedWebsocketClosedEvent;
@@ -23,20 +22,22 @@ import java.util.UUID;
 import static vip.floatationdevice.mc2gforward.MC2GForward.*;
 
 @SuppressWarnings("UnstableApiUsage") public class BindManager implements Listener, CommandExecutor
-{//TODO: cleanups and optimizations when im began to feel better
+{
+    //TODO: cleanups and optimizations when im began to feel better
+    //TODO: i18n
     public static HashMap<String, UUID> bindMap=new HashMap<String, UUID>();// key: guilded userId; value: mc player uuid
     public static HashMap<String, UUID> pendingMap=new HashMap<String, UUID>();// key: bind code; value: mc player uuid
     public static HashMap<UUID, String> pendingPlayerMap =new HashMap<UUID, String>();// key: mc player uuid; value: bind code
     public static final Random r=new Random();
-    G4JClient client;
+    G4JWebSocketClient ws;
 
     public BindManager()
     {
         loadBindMap();
-        this.client=new G4JClient(MC2GForward.token);
+        ws=new G4JWebSocketClient(MC2GForward.token);
         instance.getLogger().info("Connecting to Guilded server");
-        client.ws.connect();
-        client.ws.eventBus.register(this);
+        ws.connect();
+        ws.eventBus.register(this);
     }
 
     @Subscribe
@@ -47,10 +48,18 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
     @Subscribe
     public void onG4JConnectionClosed(GuildedWebsocketClosedEvent event)
     {
-        instance.getLogger().warning("Connection to Guilded server lost. Reconnecting");
-        client.ws=new G4JWebSocketClient(token);
-        client.ws.connect();
-        client.ws.eventBus.register(this);
+        if(mc2gRunning)
+        {
+            // if the plugin is running normally but the connection was closed
+            // then we can consider it as unexpected and do a reconnection
+            instance.getLogger().warning("Connection to Guilded server lost. Reconnecting");
+            ws=new G4JWebSocketClient(token);
+            ws.connect();
+            ws.eventBus.register(this);
+        }
+        else
+            // the plugin is being disabled or the server is stopping, so we can just ignore this
+            instance.getLogger().info("Connection to Guilded server closed");
     }
     @Subscribe
     public void onGuildedChat(ChatMessageCreatedEvent event)
