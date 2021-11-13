@@ -20,14 +20,13 @@ import java.util.Random;
 import java.util.UUID;
 
 import static vip.floatationdevice.mc2gforward.MC2GForward.*;
+import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
 
 @SuppressWarnings("UnstableApiUsage") public class BindManager implements Listener, CommandExecutor
 {
-    //TODO: cleanups and optimizations when im began to feel better
-    //TODO: i18n
     public static HashMap<String, UUID> bindMap=new HashMap<String, UUID>();// key: guilded userId; value: mc player uuid
     public static HashMap<String, UUID> pendingMap=new HashMap<String, UUID>();// key: bind code; value: mc player uuid
-    public static HashMap<UUID, String> pendingPlayerMap =new HashMap<UUID, String>();// key: mc player uuid; value: bind code
+    public static HashMap<UUID, String> pendingPlayerMap =new HashMap<UUID, String>();// pendingMap but with upside down
     public static final Random r=new Random();
     G4JWebSocketClient ws;
 
@@ -35,7 +34,7 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
     {
         loadBindMap();
         ws=new G4JWebSocketClient(MC2GForward.token);
-        instance.getLogger().info("Connecting to Guilded server");
+        instance.getLogger().info(getLocalizedMessage("connecting"));
         ws.connect();
         ws.eventBus.register(this);
     }
@@ -43,7 +42,7 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
     @Subscribe
     public void onG4JConnectionOpened(GuildedWebsocketInitializedEvent event)
     {
-        instance.getLogger().info("Connection to Guilded server opened");
+        instance.getLogger().info(getLocalizedMessage("connected"));
     }
     @Subscribe
     public void onG4JConnectionClosed(GuildedWebsocketClosedEvent event)
@@ -52,71 +51,73 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
         {
             // if the plugin is running normally but the connection was closed
             // then we can consider it as unexpected and do a reconnection
-            instance.getLogger().warning("Connection to Guilded server lost. Reconnecting");
+            instance.getLogger().warning(getLocalizedMessage("disconnected-unexpected"));
             ws=new G4JWebSocketClient(token);
             ws.connect();
             ws.eventBus.register(this);
         }
         else
             // the plugin is being disabled or the server is stopping, so we can just ignore this
-            instance.getLogger().info("Connection to Guilded server closed");
+            instance.getLogger().info(getLocalizedMessage("disconnected"));
     }
     @Subscribe
     public void onGuildedChat(ChatMessageCreatedEvent event)
     {
-        if(event.getChatMessageObject().getContent().startsWith("/mc2g mkbind"))
-        {
-            String[] args=event.getChatMessageObject().getContent().split(" ");
-            // args.length=3; args[0]="/mc2g", args[1]="bind", args[2]="<code>"
-            if(args.length!=3)// incorrect command format?
+        ChatMessage msg=event.getChatMessageObject();// the received ChatMessage object
+        if(msg.getChannelId().equals(MC2GForward.channel))// in chat-forwarding channel?
+            if(msg.getContent().startsWith("/mc2g mkbind"))
             {
-                sendGuildedMsg("[X] Usage: /mc2g mkbind <CODE>", event.getChatMessageObject().getMsgId());
-            }
-            else// right usage?
-            {
-                if(bindMap.containsKey(event.getChatMessageObject().getCreatorId()))// player already bound?
+                String[] args=msg.getContent().split(" ");
+                // args.length=3; args[0]="/mc2g", args[1]="bind", args[2]="<code>"
+                if(args.length!=3)// incorrect command format?
                 {
-                    sendGuildedMsg("[X] Your account has been bound to "+getPlayerName(bindMap.get(event.getChatMessageObject().getCreatorId()))+" before", event.getChatMessageObject().getMsgId());
+                    sendGuildedMsg(getLocalizedMessage("g-usage"), msg.getMsgId());
+                }
+                else// right usage?
+                {
+                    if(bindMap.containsKey(msg.getCreatorId()))// player already bound?
+                    {
+                        sendGuildedMsg(getLocalizedMessage("g-already-bound").replace("%PLAYER%",getPlayerName(bindMap.get(msg.getCreatorId()))), msg.getMsgId());
+                    }
+                    else// player not bound?
+                    {
+                        if(pendingMap.containsKey(args[2]))// code matched?
+                        {
+                            bindMap.put(msg.getCreatorId(), pendingMap.get(args[2]));
+                            pendingPlayerMap.remove(pendingMap.get(args[2]));
+                            pendingMap.remove(args[2]);
+                            try{Bukkit.getPlayer(bindMap.get(msg.getCreatorId())).sendMessage(getLocalizedMessage("m-bind-success"));}catch(Exception ignored){}
+                            sendGuildedMsg(getLocalizedMessage("g-bind-success").replace("%PLAYER%",getPlayerName(bindMap.get(msg.getCreatorId()))), msg.getMsgId());
+                            instance.getLogger().info(getLocalizedMessage("c-bind-success").replace("%PLAYER%",getPlayerName(bindMap.get(msg.getCreatorId()))));
+                            saveBindMap();
+                        }
+                        else// code not in pending list?
+                        {
+                            sendGuildedMsg(getLocalizedMessage("invalid-code"), msg.getMsgId());
+                        }
+                    }
+                }
+            }
+            else if(msg.getContent().equals("/mc2g rmbind"))
+            {
+                if(bindMap.containsKey(msg.getCreatorId()))// player bound?
+                {
+                    try{Bukkit.getPlayer(bindMap.get(msg.getCreatorId())).sendMessage(getLocalizedMessage("m-unbind-success"));}catch(Exception ignored){}
+                    UUID removed=bindMap.remove(msg.getCreatorId());
+                    sendGuildedMsg(getLocalizedMessage("g-unbind-success"), msg.getMsgId());
+                    instance.getLogger().info(getLocalizedMessage("c-unbind-success").replace("%PLAYER%",getPlayerName(removed)));
+                    saveBindMap();
                 }
                 else// player not bound?
                 {
-                    if(pendingMap.containsKey(args[2]))// code matched?
-                    {
-                        bindMap.put(event.getChatMessageObject().getCreatorId(), pendingMap.get(args[2]));
-                        pendingPlayerMap.remove(pendingMap.get(args[2]));
-                        pendingMap.remove(args[2]);
-                        try{Bukkit.getPlayer(bindMap.get(event.getChatMessageObject().getCreatorId())).sendMessage("[§6MC2GForward§f] §aSuccessfully bound your Guilded account\n  §aNow you can send messages from Guilded server to Minecraft server");}catch(Exception ignored){}
-                        sendGuildedMsg("[i] Successfully bound your account to "+getPlayerName(bindMap.get(event.getChatMessageObject().getCreatorId())), event.getChatMessageObject().getMsgId());
-                        instance.getLogger().info(getPlayerName(bindMap.get(event.getChatMessageObject().getCreatorId()))+" successfully bound Guilded account");
-                        saveBindMap();
-                    }
-                    else// code not in pending list?
-                    {
-                        sendGuildedMsg("[X] Invalid bind code. Please check the code you typed or use \"/mc2g mkbind\" again in Minecraft to request a new code", event.getChatMessageObject().getMsgId());
-                    }
+                    sendGuildedMsg(getLocalizedMessage("g-no-bind"), msg.getMsgId());
                 }
             }
-        }
-        else if(event.getChatMessageObject().getContent().equals("/mc2g rmbind"))
-        {
-            if(bindMap.containsKey(event.getChatMessageObject().getCreatorId()))// player bound?
+            else
             {
-                try{Bukkit.getPlayer(bindMap.get(event.getChatMessageObject().getCreatorId())).sendMessage("[§6MC2GForward§f] §aSuccessfully unbound your Guilded account");}catch(Exception ignored){}
-                UUID removed=bindMap.remove(event.getChatMessageObject().getCreatorId());
-                sendGuildedMsg("[i] Successfully unbound your Guilded account", event.getChatMessageObject().getMsgId());
-                instance.getLogger().info(getPlayerName(removed)+" successfully unbound Guilded account");
-                saveBindMap();
+                if(!msg.getContent().startsWith("/")&&bindMap.containsKey(msg.getCreatorId()))
+                    Bukkit.broadcastMessage("<"+getPlayerName(bindMap.get(msg.getCreatorId()))+"> "+msg.getContent());
             }
-            else// player not bound?
-            {
-                sendGuildedMsg("[X] You are not bound to any Minecraft account", event.getChatMessageObject().getMsgId());
-            }
-        }
-        else
-        {
-            if(!event.getChatMessageObject().getContent().startsWith("/")&&bindMap.containsKey(event.getChatMessageObject().getCreatorId()))
-                Bukkit.broadcastMessage("<"+getPlayerName(bindMap.get(event.getChatMessageObject().getCreatorId()))+"> "+event.getChatMessageObject().getContent());
-        }
     }
 
     @Override
@@ -124,7 +125,7 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
     {
         if(!(sender instanceof Player))
         {
-            sender.sendMessage("This command can only be used in-game");
+            sender.sendMessage(getLocalizedMessage("non-player-executor"));
             return false;
         }
 
@@ -132,12 +133,12 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
         {
             String code="";// 10-digit random bind code from ASCII x21(!) to x7E(~)
             for(int i=0;i!=10;i++) code+=String.valueOf((char)(r.nextInt(94)+33));// StringBuilder not needed
-            if(pendingPlayerMap.containsKey(((Player)sender).getUniqueId())) // update bind code
+            if(pendingPlayerMap.containsKey(((Player)sender).getUniqueId())) // remove old bind code if exists
                 pendingMap.remove(pendingPlayerMap.get(((Player)sender).getUniqueId()));
             pendingMap.put(code, ((Player)sender).getUniqueId());
             pendingPlayerMap.put(((Player)sender).getUniqueId(), code);
-            sender.sendMessage("[§6MC2GForward§f] Your bind code is: §a"+code+"\n  §fType \"§a/mc2g mkbind "+code+"§f\" in Guilded server to confirm the bind");
-            instance.getLogger().info(sender.getName()+" requested a bind code: "+code);
+            sender.sendMessage(getLocalizedMessage("m-code-requested").replace("%CODE%",code));
+            instance.getLogger().info(getLocalizedMessage("c-code-requested").replace("%PLAYER%",sender.getName()).replace("%CODE%",code));
             return true;
         }
         else if(args.length==1&&args[0].equals("rmbind"))
@@ -147,18 +148,18 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
                 if(bindMap.get(u).equals(((Player)sender).getUniqueId()))
                 {
                     bindMap.remove(u);
-                    sender.sendMessage("[§6MC2GForward§f] §aSuccessfully unbound your Guilded account");
-                    instance.getLogger().info(sender.getName()+" successfully unbound Guilded account");
+                    sender.sendMessage(getLocalizedMessage("m-unbind-success"));
+                    instance.getLogger().info(getLocalizedMessage("c-unbind-success").replace("%PLAYER%",sender.getName()));
                     saveBindMap();
                     return true;
                 }
             }
-            sender.sendMessage("[§6MC2GForward§f] §cYou must bind a Guilded account first");
+            sender.sendMessage(getLocalizedMessage("m-no-bind"));
             return false;
         }
         else
         {
-            sender.sendMessage("[§6MC2GForward§f] §eUsage: /mc2g <mkbind/rmbind>");
+            sender.sendMessage(getLocalizedMessage("m-usage"));
             return false;
         }
     }
@@ -174,7 +175,7 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
                 {
                     ChatMessage result=null;
                     try {result=instance.g4JClient.createChannelMessage(MC2GForward.channel,msg,new String[]{replyTo},false);}
-                    catch(Exception e) {instance.getLogger().severe("Failed to send message to Guilded server: "+e);}
+                    catch(Exception e) {instance.getLogger().severe(getLocalizedMessage("msg-send-failed").replace("%EXCEPTION%",e.toString()));}
                     if(instance.debug&&result!=null) instance.getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
                 }
             }
@@ -200,9 +201,9 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
             ObjectOutputStream o=new ObjectOutputStream(new FileOutputStream(cfgPath+"bindMap.dat"));
             o.writeObject(new BindMapContainer(bindMap));
             o.close();
-            instance.getLogger().info("Bind map saved");
+            instance.getLogger().info(getLocalizedMessage("bindmap-save-success"));
         }
-        catch(Exception e) {instance.getLogger().severe("Failed to save bind map: "+e);}
+        catch(Exception e) {instance.getLogger().severe(getLocalizedMessage("bindmap-save-failure").replace("%EXCEPTION%",e.toString()));}
     }
     public void loadBindMap()
     {
@@ -212,9 +213,9 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.*;
             BindMapContainer temp=(BindMapContainer)o.readObject();
             o.close();
             bindMap=temp.saveBindMap;
-            instance.getLogger().info("Bind map loaded");
+            instance.getLogger().info(getLocalizedMessage("bindmap-load-success"));
         }
         catch(FileNotFoundException ignored){}
-        catch(Exception e) {instance.getLogger().severe("Failed to load bind map: "+e);}
+        catch(Exception e) {instance.getLogger().severe(getLocalizedMessage("bindmap-load-failure").replace("%EXCEPTION%",e.toString()));}
     }
 }

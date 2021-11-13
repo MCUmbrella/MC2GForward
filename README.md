@@ -6,14 +6,16 @@
 *Did I make it clear? DO, NOT, RELOAD*
 ### Configuration: `config.properties`
 ```properties
+language=en_US
 token=
 channel=
 forwardJoinLeaveEvents=true
 debug=false
 ```
-- `token`: your bot token
-- `channel`: target channel ID. All message forwarding occurs on this channel
-- `forwardJoinLeaveEvents`: whether forward player join/quit messages or not
+- `language`: the language to use for the plugin. Default: `en_US`.
+- `token`: your bot token.
+- `channel`: target channel ID. All message forwarding occurs in this channel.
+- `forwardJoinLeaveEvents`: whether forward player join/quit messages or not.
 - `debug`: print the response after forwarding a message to Guilded.
 ### Binding your Guilded account:
 1. Log into the Minecraft server and type `/mc2g mkbind` and you will get a 10-digit random binding code.

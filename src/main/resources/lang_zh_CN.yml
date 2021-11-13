@@ -1,0 +1,42 @@
+language: "中文（中国）"
+language-file-contributor: "MCUmbrella"
+
+# System messages
+invalid-config: "配置文件有误，请修正错误后重启服务器"
+non-player-executor: "此命令只能由玩家执行"
+msg-send-failed: "转发信息到Guilded失败：%EXCEPTION%"
+
+connecting: "连接Guilded服务器"
+connected: "成功连接到Guilded服务器"
+disconnected: "到Guilded服务器的连接已关闭"
+disconnected-unexpected: "到Guilded服务器的连接中断，重连中"
+
+bindmap-save-success: "保存绑定表"
+bindmap-save-failure: "保存绑定表失败：%EXCEPTION%"
+bindmap-load-success: "读取绑定表"
+bindmap-load-failure: "读取绑定表失败：%EXCEPTION%"
+
+c-bind-success: "%PLAYER%成功绑定Guilded账户"
+c-unbind-success: "%PLAYER%成功解绑Guilded账户"
+c-code-requested: "%PLAYER%请求绑定码：%CODE%"
+
+# Messages sent to Minecraft client
+m-usage: "[§6MC2GForward§f] §e用法：/mc2g <mkbind/rmbind>"
+m-bind-success: "[§6MC2GForward§f] §a成功绑定Guilded账户\n  §a你现在可以从Guilded发送信息到Minecraft了"
+m-unbind-success: "[§6MC2GForward§f] §a成功解绑Guilded账户"
+m-no-bind: "[§6MC2GForward§f] §c你还没有绑定Guilded账户"
+m-code-requested: "[§6MC2GForward§f] 你的绑定码为： §a%CODE%\n  §f在Guilded的聊天转发频道输入“§a/mc2g mkbind %CODE%§f”确认绑定"
+
+# Messages sent to Guilded server
+g-usage: "[X] 用法：/mc2g mkbind <CODE>"
+g-bind-success: "[i] 成功将Guilded账户绑定至%PLAYER%"
+g-unbind-success: "[i] 成功解绑Guilded账户"
+g-no-bind: "[X] 你的Guilded账户还没有绑定玩家"
+invalid-code: "[X] 绑定码错误，请检查拼写或在Minecraft中再次输入“/mc2g mkbind”生成一个新绑定码"
+g-already-bound: "[X] 你的Guilded账户已绑定至%PLAYER%"
+
+mc2g-started: "`* MC2GForward已启动 *`"
+mc2g-stopped: "`* MC2GForward已停止 *`"
+player-connected: "`[+] %PLAYER%加入了游戏`"
+player-disconnected: "`[-] %PLAYER%离开了游戏`"
+player-disconnected-unusual: "`(%PLAYER%连接中断：%REASON%)`"

@@ -6,7 +6,7 @@
 
     <groupId>vip.floatationdevice</groupId>
     <artifactId>mc2gforward</artifactId>
-    <version>1.0-SNAPSHOT7</version>
+    <version>1.0-SNAPSHOT8</version>
     <packaging>jar</packaging>
 
     <name>MC2GForward</name>
@@ -25,7 +25,7 @@
                 <filtering>true</filtering>
                 <directory>${basedir}/src/main/resources/</directory>
                 <includes>
-                    <include>plugin.yml</include>
+                    <include>*</include>
                 </includes>
             </resource>
         </resources>

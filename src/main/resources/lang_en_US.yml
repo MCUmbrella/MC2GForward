@@ -1,0 +1,42 @@
+language: "English (US)"
+language-file-contributor: "MCUmbrella"
+
+# System messages
+invalid-config: "Invalid config. Check the config file and RESTART the server."
+non-player-executor: "This command can only be used in-game"
+msg-send-failed: "Failed to send message to Guilded server: %EXCEPTION%"
+
+connecting: "Connecting to Guilded server"
+connected: "Connection to Guilded server opened"
+disconnected: "Connection to Guilded server closed"
+disconnected-unexpected: "Connection to Guilded server lost. Reconnecting"
+
+bindmap-save-success: "Bind map saved"
+bindmap-save-failure: "Failed to save bind map: %EXCEPTION%"
+bindmap-load-success: "Bind map loaded"
+bindmap-load-failure: "Failed to load bind map: %EXCEPTION%"
+
+c-bind-success: "%PLAYER% successfully bound Guilded account"
+c-unbind-success: "%PLAYER% successfully unbound Guilded account"
+c-code-requested: "%PLAYER% requested a bind code: %CODE%"
+
+# Messages sent to Minecraft client
+m-usage: "[§6MC2GForward§f] §eUsage: /mc2g <mkbind/rmbind>"
+m-bind-success: "[§6MC2GForward§f] §aSuccessfully bound your Guilded account\n  §aNow you can send messages from Guilded server to Minecraft server"
+m-unbind-success: "[§6MC2GForward§f] §aSuccessfully unbound your Guilded account"
+m-no-bind: "[§6MC2GForward§f] §cYou must bind a Guilded account first"
+m-code-requested: "[§6MC2GForward§f] Your bind code is: §a%CODE%\n  §fType \"§a/mc2g mkbind %CODE%§f\" in Guilded server's chat-forwarding channel to confirm the bind"
+
+# Messages sent to Guilded server
+g-usage: "[X] Usage: /mc2g mkbind <CODE>"
+g-bind-success: "[i] Successfully bound your account to %PLAYER%"
+g-unbind-success: "[i] Successfully unbound your Guilded account"
+g-no-bind: "[X] You are not bound to any Minecraft account"
+invalid-code: "[X] Invalid bind code. Please check the code you typed or use \"/mc2g mkbind\" again in Minecraft to request a new code"
+g-already-bound: "[X] Your account has been bound to %PLAYER% before"
+
+mc2g-started: "`* MC2GForward started *`"
+mc2g-stopped: "`* MC2GForward stopped *`"
+player-connected: "`[+] %PLAYER% connected`"
+player-disconnected: "`[-] %PLAYER% disconnected`"
+player-disconnected-unusual: "`(%PLAYER% lost connection: %REASON%)`"
