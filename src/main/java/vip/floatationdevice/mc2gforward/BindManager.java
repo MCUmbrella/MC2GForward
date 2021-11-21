@@ -19,7 +19,10 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.UUID;
 
-import static vip.floatationdevice.mc2gforward.MC2GForward.*;
+import static vip.floatationdevice.mc2gforward.MC2GForward.instance;
+import static vip.floatationdevice.mc2gforward.MC2GForward.mc2gRunning;
+import static vip.floatationdevice.mc2gforward.MC2GForward.token;
+import static vip.floatationdevice.mc2gforward.MC2GForward.cfgPath;
 import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
 
 @SuppressWarnings("UnstableApiUsage") public class BindManager implements Listener, CommandExecutor
@@ -35,8 +38,8 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
         loadBindMap();
         ws=new G4JWebSocketClient(MC2GForward.token);
         instance.getLogger().info(getLocalizedMessage("connecting"));
-        ws.connect();
         ws.eventBus.register(this);
+        ws.connect();
     }
 
     @Subscribe
