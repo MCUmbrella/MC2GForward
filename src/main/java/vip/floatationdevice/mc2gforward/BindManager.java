@@ -10,8 +10,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import vip.floatationdevice.guilded4j.G4JWebSocketClient;
 import vip.floatationdevice.guilded4j.event.ChatMessageCreatedEvent;
-import vip.floatationdevice.guilded4j.event.GuildedWebsocketClosedEvent;
-import vip.floatationdevice.guilded4j.event.GuildedWebsocketInitializedEvent;
+import vip.floatationdevice.guilded4j.event.GuildedWebSocketClosedEvent;
+import vip.floatationdevice.guilded4j.event.GuildedWebSocketInitializedEvent;
 import vip.floatationdevice.guilded4j.object.ChatMessage;
 
 import java.io.*;
@@ -23,7 +23,7 @@ import static vip.floatationdevice.mc2gforward.MC2GForward.instance;
 import static vip.floatationdevice.mc2gforward.MC2GForward.mc2gRunning;
 import static vip.floatationdevice.mc2gforward.MC2GForward.token;
 import static vip.floatationdevice.mc2gforward.MC2GForward.cfgPath;
-import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
+import static vip.floatationdevice.mc2gforward.I18nUtil.translate;
 
 @SuppressWarnings("UnstableApiUsage") public class BindManager implements Listener, CommandExecutor
 {
@@ -37,50 +37,50 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
     {
         loadBindMap();
         ws=new G4JWebSocketClient(MC2GForward.token);
-        instance.getLogger().info(getLocalizedMessage("connecting"));
+        instance.getLogger().info(translate("connecting"));
         ws.eventBus.register(this);
         ws.connect();
     }
 
     @Subscribe
-    public void onG4JConnectionOpened(GuildedWebsocketInitializedEvent event)
+    public void onG4JConnectionOpened(GuildedWebSocketInitializedEvent event)
     {
-        instance.getLogger().info(getLocalizedMessage("connected"));
+        instance.getLogger().info(translate("connected"));
     }
     @Subscribe
-    public void onG4JConnectionClosed(GuildedWebsocketClosedEvent event)
+    public void onG4JConnectionClosed(GuildedWebSocketClosedEvent event)
     {
         if(mc2gRunning)
         {
             // if the plugin is running normally but the connection was closed
             // then we can consider it as unexpected and do a reconnection
-            instance.getLogger().warning(getLocalizedMessage("disconnected-unexpected"));
+            instance.getLogger().warning(translate("disconnected-unexpected"));
             ws=new G4JWebSocketClient(token);
             ws.connect();
             ws.eventBus.register(this);
         }
         else
             // the plugin is being disabled or the server is stopping, so we can just ignore this
-            instance.getLogger().info(getLocalizedMessage("disconnected"));
+            instance.getLogger().info(translate("disconnected"));
     }
     @Subscribe
     public void onGuildedChat(ChatMessageCreatedEvent event)
     {
         ChatMessage msg=event.getChatMessageObject();// the received ChatMessage object
-        if(msg.getChannelId().equals(MC2GForward.channel))// in chat-forwarding channel?
+        if(msg.getServerId().equals(MC2GForward.server) && msg.getChannelId().equals(MC2GForward.channel))// in the right server and channel?
             if(msg.getContent().startsWith("/mc2g mkbind"))
             {
                 String[] args=msg.getContent().split(" ");
                 // args.length=3; args[0]="/mc2g", args[1]="bind", args[2]="<code>"
                 if(args.length!=3)// incorrect command format?
                 {
-                    sendGuildedMsg(getLocalizedMessage("g-usage"), msg.getMsgId());
+                    sendGuildedMsg(translate("g-usage"), msg.getMsgId());
                 }
                 else// right usage?
                 {
                     if(bindMap.containsKey(msg.getCreatorId()))// player already bound?
                     {
-                        sendGuildedMsg(getLocalizedMessage("g-already-bound").replace("%PLAYER%",getPlayerName(bindMap.get(msg.getCreatorId()))), msg.getMsgId());
+                        sendGuildedMsg(translate("g-already-bound").replace("%PLAYER%",getPlayerName(bindMap.get(msg.getCreatorId()))), msg.getMsgId());
                     }
                     else// player not bound?
                     {
@@ -89,14 +89,14 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
                             bindMap.put(msg.getCreatorId(), pendingMap.get(args[2]));
                             pendingPlayerMap.remove(pendingMap.get(args[2]));
                             pendingMap.remove(args[2]);
-                            try{Bukkit.getPlayer(bindMap.get(msg.getCreatorId())).sendMessage(getLocalizedMessage("m-bind-success"));}catch(Exception ignored){}
-                            sendGuildedMsg(getLocalizedMessage("g-bind-success").replace("%PLAYER%",getPlayerName(bindMap.get(msg.getCreatorId()))), msg.getMsgId());
-                            instance.getLogger().info(getLocalizedMessage("c-bind-success").replace("%PLAYER%",getPlayerName(bindMap.get(msg.getCreatorId()))));
+                            try{Bukkit.getPlayer(bindMap.get(msg.getCreatorId())).sendMessage(translate("m-bind-success"));}catch(Exception ignored){}
+                            sendGuildedMsg(translate("g-bind-success").replace("%PLAYER%",getPlayerName(bindMap.get(msg.getCreatorId()))), msg.getMsgId());
+                            instance.getLogger().info(translate("c-bind-success").replace("%PLAYER%",getPlayerName(bindMap.get(msg.getCreatorId()))));
                             saveBindMap();
                         }
                         else// code not in pending list?
                         {
-                            sendGuildedMsg(getLocalizedMessage("invalid-code"), msg.getMsgId());
+                            sendGuildedMsg(translate("invalid-code"), msg.getMsgId());
                         }
                     }
                 }
@@ -105,15 +105,15 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
             {
                 if(bindMap.containsKey(msg.getCreatorId()))// player bound?
                 {
-                    try{Bukkit.getPlayer(bindMap.get(msg.getCreatorId())).sendMessage(getLocalizedMessage("m-unbind-success"));}catch(Exception ignored){}
+                    try{Bukkit.getPlayer(bindMap.get(msg.getCreatorId())).sendMessage(translate("m-unbind-success"));}catch(Exception ignored){}
                     UUID removed=bindMap.remove(msg.getCreatorId());
-                    sendGuildedMsg(getLocalizedMessage("g-unbind-success"), msg.getMsgId());
-                    instance.getLogger().info(getLocalizedMessage("c-unbind-success").replace("%PLAYER%",getPlayerName(removed)));
+                    sendGuildedMsg(translate("g-unbind-success"), msg.getMsgId());
+                    instance.getLogger().info(translate("c-unbind-success").replace("%PLAYER%",getPlayerName(removed)));
                     saveBindMap();
                 }
                 else// player not bound?
                 {
-                    sendGuildedMsg(getLocalizedMessage("g-no-bind"), msg.getMsgId());
+                    sendGuildedMsg(translate("g-no-bind"), msg.getMsgId());
                 }
             }
             else
@@ -128,7 +128,7 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
     {
         if(!(sender instanceof Player))
         {
-            sender.sendMessage(getLocalizedMessage("non-player-executor"));
+            sender.sendMessage(translate("non-player-executor"));
             return false;
         }
 
@@ -140,8 +140,8 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
                 pendingMap.remove(pendingPlayerMap.get(((Player)sender).getUniqueId()));
             pendingMap.put(code, ((Player)sender).getUniqueId());
             pendingPlayerMap.put(((Player)sender).getUniqueId(), code);
-            sender.sendMessage(getLocalizedMessage("m-code-requested").replace("%CODE%",code));
-            instance.getLogger().info(getLocalizedMessage("c-code-requested").replace("%PLAYER%",sender.getName()).replace("%CODE%",code));
+            sender.sendMessage(translate("m-code-requested").replace("%CODE%",code));
+            instance.getLogger().info(translate("c-code-requested").replace("%PLAYER%",sender.getName()).replace("%CODE%",code));
             return true;
         }
         else if(args.length==1&&args[0].equals("rmbind"))
@@ -151,18 +151,18 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
                 if(bindMap.get(u).equals(((Player)sender).getUniqueId()))
                 {
                     bindMap.remove(u);
-                    sender.sendMessage(getLocalizedMessage("m-unbind-success"));
-                    instance.getLogger().info(getLocalizedMessage("c-unbind-success").replace("%PLAYER%",sender.getName()));
+                    sender.sendMessage(translate("m-unbind-success"));
+                    instance.getLogger().info(translate("c-unbind-success").replace("%PLAYER%",sender.getName()));
                     saveBindMap();
                     return true;
                 }
             }
-            sender.sendMessage(getLocalizedMessage("m-no-bind"));
+            sender.sendMessage(translate("m-no-bind"));
             return false;
         }
         else
         {
-            sender.sendMessage(getLocalizedMessage("m-usage"));
+            sender.sendMessage(translate("m-usage"));
             return false;
         }
     }
@@ -178,7 +178,7 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
                 {
                     ChatMessage result=null;
                     try {result=instance.g4JClient.createChannelMessage(MC2GForward.channel,msg,new String[]{replyTo},false);}
-                    catch(Exception e) {instance.getLogger().severe(getLocalizedMessage("msg-send-failed").replace("%EXCEPTION%",e.toString()));}
+                    catch(Exception e) {instance.getLogger().severe(translate("msg-send-failed").replace("%EXCEPTION%",e.toString()));}
                     if(instance.debug&&result!=null) instance.getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
                 }
             }
@@ -204,9 +204,9 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
             ObjectOutputStream o=new ObjectOutputStream(new FileOutputStream(cfgPath+"bindMap.dat"));
             o.writeObject(new BindMapContainer(bindMap));
             o.close();
-            instance.getLogger().info(getLocalizedMessage("bindmap-save-success"));
+            instance.getLogger().info(translate("bindmap-save-success"));
         }
-        catch(Exception e) {instance.getLogger().severe(getLocalizedMessage("bindmap-save-failure").replace("%EXCEPTION%",e.toString()));}
+        catch(Exception e) {instance.getLogger().severe(translate("bindmap-save-failure").replace("%EXCEPTION%",e.toString()));}
     }
     public void loadBindMap()
     {
@@ -216,9 +216,9 @@ import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
             BindMapContainer temp=(BindMapContainer)o.readObject();
             o.close();
             bindMap=temp.saveBindMap;
-            instance.getLogger().info(getLocalizedMessage("bindmap-load-success"));
+            instance.getLogger().info(translate("bindmap-load-success"));
         }
         catch(FileNotFoundException ignored){}
-        catch(Exception e) {instance.getLogger().severe(getLocalizedMessage("bindmap-load-failure").replace("%EXCEPTION%",e.toString()));}
+        catch(Exception e) {instance.getLogger().severe(translate("bindmap-load-failure").replace("%EXCEPTION%",e.toString()));}
     }
 }

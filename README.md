@@ -8,12 +8,14 @@
 ```properties
 language=en_US
 token=
+server=
 channel=
 forwardJoinLeaveEvents=true
 debug=false
 ```
 - `language`: the language to use for the plugin. Default: `en_US`.
 - `token`: your bot token.
+- `server`: target server ID. All message forwarding occurs in this server.
 - `channel`: target channel ID. All message forwarding occurs in this channel.
 - `forwardJoinLeaveEvents`: whether forward player join/quit messages or not.
 - `debug`: print the response after forwarding a message to Guilded.

@@ -11,7 +11,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import vip.floatationdevice.guilded4j.G4JClient;
 import vip.floatationdevice.guilded4j.object.ChatMessage;
-import static vip.floatationdevice.mc2gforward.I18nUtil.getLocalizedMessage;
+import static vip.floatationdevice.mc2gforward.I18nUtil.translate;
 
 import java.io.*;
 import java.util.Properties;
@@ -20,12 +20,20 @@ public final class MC2GForward extends JavaPlugin implements Listener
 {
     public static MC2GForward instance;
     final static String cfgPath="."+File.separator+"plugins"+File.separator+"MC2GForward"+File.separator;
-    static String token,channel;
+    static String lang,token,server,channel;
     static Boolean mc2gRunning=false;
     G4JClient g4JClient;
     BindManager bindMgr;
     Boolean forwardJoinLeaveEvents=true;
     Boolean debug=false;
+
+    boolean isNull(String... s)
+    {
+        for(String a:s)
+            if(a==null || a.isEmpty())
+                return true;
+        return false;
+    }
 
     @Override
     public void onEnable()
@@ -40,7 +48,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
             {
                 getLogger().severe("Config file not found and a empty one will be created. Set the token and channel UUID and RESTART server.");
                 BufferedWriter bw = new BufferedWriter(new FileWriter(file));
-                bw.write("language=en_US\ntoken=\nchannel=\nforwardJoinLeaveEvents=true\ndebug=false\n");
+                bw.write("language=en_US\ntoken=\nserver=\nchannel=\nforwardJoinLeaveEvents=true\ndebug=false\n");
                 bw.flush();
                 bw.close();
                 Bukkit.getPluginManager().disablePlugin(this);
@@ -49,18 +57,23 @@ public final class MC2GForward extends JavaPlugin implements Listener
             BufferedReader cfg=new BufferedReader(new FileReader(file));
             Properties p=new Properties();
             p.load(cfg);
+            lang=p.getProperty("language");
             token=p.getProperty("token");
+            server=p.getProperty("server");
             channel=p.getProperty("channel");
-            forwardJoinLeaveEvents=Boolean.parseBoolean(p.getProperty("forwardJoinLeaveEvents"));
-            debug=Boolean.parseBoolean(p.getProperty("debug"));
-            getLogger().info("Language: "+I18nUtil.setLanguage(p.getProperty("language"))+" - "+getLocalizedMessage("language")+" by "+getLocalizedMessage("language-file-contributor"));
-            if(token==null||channel.length()!=36)
+            if(isNull(lang,token,server,channel,p.getProperty("forwardJoinLeaveEvents"),p.getProperty("debug"))
+                    || !lang.matches("^[a-z]{2}_[A-Z]{2}$") || channel.length()!=36 || server.length()!=8
+                    || !p.getProperty("forwardJoinLeaveEvents").toLowerCase().matches("^(true|false)$")
+                    || !p.getProperty("debug").toLowerCase().matches("^(true|false)$"))
             {
-                getLogger().severe(getLocalizedMessage("invalid-config"));
+                getLogger().severe(translate("invalid-config"));
                 g4JClient=null;
                 Bukkit.getPluginManager().disablePlugin(this);
                 return;
             }
+            forwardJoinLeaveEvents=Boolean.parseBoolean(p.getProperty("forwardJoinLeaveEvents"));
+            debug=Boolean.parseBoolean(p.getProperty("debug"));
+            I18nUtil.setLanguage(lang);
             g4JClient=new G4JClient(token);
             Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable()
             {// fuck lambdas all my codes are lambda-free
@@ -73,7 +86,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
                     mc2gRunning=true;
                 }
             });
-            sendGuildedMsg(getLocalizedMessage("mc2g-started"));
+            sendGuildedMsg(translate("mc2g-started"));
         }catch (Throwable e)
         {
             getLogger().severe("Failed to initialize plugin!");
@@ -95,8 +108,8 @@ public final class MC2GForward extends JavaPlugin implements Listener
         if(g4JClient!=null)
         {
             ChatMessage result=null;
-            try {result=g4JClient.createChannelMessage(channel,getLocalizedMessage("mc2g-stopped"),null,null);}
-            catch (Exception e) {getLogger().severe(getLocalizedMessage("msg-send-failed").replace("%EXCEPTION%",e.toString()));}
+            try {result=g4JClient.createChannelMessage(channel, translate("mc2g-stopped"),null,null);}
+            catch (Exception e) {getLogger().severe(translate("msg-send-failed").replace("%EXCEPTION%",e.toString()));}
             g4JClient=null;
             if(debug&&result!=null)
                 getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
@@ -121,21 +134,21 @@ public final class MC2GForward extends JavaPlugin implements Listener
     public void onJoin(PlayerJoinEvent event)
     {
         if(forwardJoinLeaveEvents)
-            sendGuildedMsg(getLocalizedMessage("player-connected").replace("%PLAYER%",event.getPlayer().getName()));
+            sendGuildedMsg(translate("player-connected").replace("%PLAYER%",event.getPlayer().getName()));
     }
 
     @EventHandler
     public void onUnusualLeave(PlayerKickEvent event)
     {
         if(forwardJoinLeaveEvents)
-            sendGuildedMsg(getLocalizedMessage("player-disconnected-unusual").replace("%PLAYER%",event.getPlayer().getName()).replace("%REASON%",event.getReason()));
+            sendGuildedMsg(translate("player-disconnected-unusual").replace("%PLAYER%",event.getPlayer().getName()).replace("%REASON%",event.getReason()));
     }
 
     @EventHandler
     public void onLeave(PlayerQuitEvent event)
     {
         if(forwardJoinLeaveEvents)
-            sendGuildedMsg(getLocalizedMessage("player-disconnected").replace("%PLAYER%",event.getPlayer().getName()));
+            sendGuildedMsg(translate("player-disconnected").replace("%PLAYER%",event.getPlayer().getName()));
     }
 
     public void sendGuildedMsg(String msg)
@@ -149,7 +162,7 @@ public final class MC2GForward extends JavaPlugin implements Listener
                 {
                     ChatMessage result=null;
                     try {result=g4JClient.createChannelMessage(channel,msg,null,null);}
-                    catch(Exception e) {getLogger().severe(getLocalizedMessage("msg-send-failed").replace("%EXCEPTION%",e.toString()));}
+                    catch(Exception e) {getLogger().severe(translate("msg-send-failed").replace("%EXCEPTION%",e.toString()));}
                     if(debug&&result!=null) getLogger().info("\n"+new JSONObject(result.toString()).toStringPretty());
                 }
             }

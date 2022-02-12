@@ -20,14 +20,14 @@ public class I18nUtil
         return lang;
     }
 
-    public static String getLocalizedMessage(String key)
+    public static String translate(String key)
     {
         String msg = l.getString(key);
         if (msg == null) return "[NO TRANSLATION: " + key + "]";
         return msg;
     }
 
-    public String getLanguage()
+    public static String getLanguage()
     {
         return lang;
     }
