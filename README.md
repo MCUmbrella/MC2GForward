@@ -1,3 +1,4 @@
+> This project was replaced by MGBridge! Go to https://github.com/MCUmbrella/MGBridge to see the new project.
 # MC2GForward
 #### Forward messages between Minecraft and Guilded server
 ### Note:
